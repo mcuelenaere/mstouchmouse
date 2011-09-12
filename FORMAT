@@ -1,0 +1,20 @@
+struct info_packet {
+    uint8 hid_id; /* 0x21 */
+    uint8 unk; /* 0x10 */
+    uint8 finger_down; /* 0x12 if yes, 0x10 if not */
+};
+
+struct finger_packet {
+    uint8 hid_id; /* 0x27 */
+    uint4 group_id; /* 0x0 or 0x1 */
+    uint4 pressure; /* ranges from 0x0 to ~ 0xA */
+    uint32 unk_const; /* 0x14 0x01 0x00 0x51 */
+    uint8 timestamp;
+    uint8 touchpad_data[16];
+};
+
+struct touchpad_data {
+    ...
+    uint8 unk; /* 0x01 | 0x21 if on lefthalf, 0x02 | 0x22 if on righthalf */
+    uint8 timestamp;
+};
