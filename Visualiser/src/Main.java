@@ -64,7 +64,7 @@ public class Main extends JPanel {
 							StringBuilder sb = new StringBuilder();
 							sb.append("27 ");
 							for (int i=0; i < buf.length; i++) {
-								sb.append(Integer.toHexString(buf[i]));
+								sb.append(String.format("%02x", buf[i]));
 								sb.append(" ");
 							}
 
