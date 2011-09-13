@@ -87,7 +87,7 @@ public class Main extends JPanel {
 							for (int i = 0; i < buf.length; i++)
 								table.getModel().setValueAt(String.format("0x%02x", buf[i]), i, buf[1] < 0x10 ? 2 : 1);
 
-							data.set(Arrays.copyOfRange(buf, 6, 32));
+							data.set(Arrays.copyOfRange(buf, 7, 32));
 							repaint();
 						} else if (bit == 0x21) {
 							int b1 = r.readUnsignedByte(), b2 = r.readUnsignedByte();
@@ -114,23 +114,21 @@ public class Main extends JPanel {
 			final int data[] = Main.this.data.get();
 			final int part = getHeight() / data.length;
 			boolean flag = false;
-			for (int i=6; i < data.length; i++) {
-				int k = i - 6;
-
+			for (int i=0; i < data.length; i++) {
 				if (data[i] != 0xff && !flag) {
 					int tmp = data[i+1] | (data[i] << 8);
 					int loc = tmp * getWidth() / (1 << 16);
 
 					g.setColor(Color.BLACK);
-					g.fillRect(0, part * k, getWidth(), part * 2);
+					g.fillRect(0, part * i, getWidth(), part * 2);
 					g.setColor(new Color(0, 0, 0xff));
-					g.drawLine(loc, part * k, loc, part * (k+2));
+					g.drawLine(loc, part * i, loc, part * (i+2));
 
 					i++;
 					flag = true;
 				} else {
 					g.setColor(new Color(0xff - data[i], 0, 0));
-					g.fillRect(0, part * k, getWidth(), part);
+					g.fillRect(0, part * i, getWidth(), part);
 				}
 			}
 		}
