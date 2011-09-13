@@ -115,21 +115,12 @@ public class Main extends JPanel {
 			final int part = getHeight() / data.length;
 			boolean flag = false;
 			for (int i=0; i < data.length; i++) {
-				if (data[i] != 0xff && !flag) {
-					int tmp = data[i+1] | (data[i] << 8);
-					int loc = tmp * getWidth() / (1 << 16);
+				g.setColor(new Color(0xff - data[i], 0, 0));
+				g.fillRect(0, part * i, getWidth(), part);
 
-					g.setColor(Color.BLACK);
-					g.fillRect(0, part * i, getWidth(), part * 2);
-					g.setColor(new Color(0, 0, 0xff));
-					g.drawLine(loc, part * i, loc, part * (i+2));
-
-					i++;
-					flag = true;
-				} else {
-					g.setColor(new Color(0xff - data[i], 0, 0));
-					g.fillRect(0, part * i, getWidth(), part);
-				}
+				int loc = data[i] * getWidth() / (1 << 8);
+				g.setColor(new Color(0, 0, 0xff));
+				g.drawLine(loc, part * i, loc, part * (i+1));
 			}
 		}
 	}
