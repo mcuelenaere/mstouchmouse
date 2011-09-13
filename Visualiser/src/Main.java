@@ -4,7 +4,6 @@
  * @author Maurus Cuelenaere
  */
 
-import java.awt.BorderLayout;
 import java.awt.Color;
 import java.awt.Dimension;
 import java.awt.Graphics;
@@ -12,7 +11,6 @@ import java.io.BufferedInputStream;
 import java.io.DataInputStream;
 import java.io.File;
 import java.io.FileInputStream;
-import java.io.FilenameFilter;
 import java.io.IOException;
 import java.util.Arrays;
 import java.util.concurrent.atomic.AtomicReference;
@@ -28,22 +26,7 @@ import javax.swing.SwingUtilities;
 public class Main extends JPanel {
 	private AtomicReference<int[]> data;
 
-	private static File discoverHidRaw()
-	{
-		File base = new File("/sys/bus/hid/devices");
-		File hids[] = base.listFiles(new FilenameFilter() {
-			@Override
-			public boolean accept(File dir, String name) {
-				return name.matches("[0-9A-Z]+:045E:0773.[0-9A-Z]+");
-			}
-		});
-
-		File hid = hids[hids.length-1];
-		String hidraw = new File(hid, "hidraw/").list()[0];
-		return new File("/dev", hidraw);
-	}
-
-	public Main()
+	public Main(final File hidraw)
 	{
 		setLayout(new BoxLayout(this, BoxLayout.X_AXIS));
 
@@ -68,7 +51,6 @@ public class Main extends JPanel {
 		add(new Vis());
 		add(b);
 
-		final File hidraw = discoverHidRaw();
 		System.out.println(hidraw);
 		new Thread(new Runnable() {
 			@Override
@@ -125,13 +107,13 @@ public class Main extends JPanel {
 		}
 	}
 
-	public static void main(String args[]) {
+	public static void main(final String args[]) {
 		SwingUtilities.invokeLater(new Runnable() {
 			@Override
 			public void run() {
 				JFrame frame = new JFrame("Visualizer");
 				frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-				frame.add(new Main());
+				frame.add(new Main(new File(args[0])));
 				frame.pack();
 				frame.setVisible(true);
 			}
