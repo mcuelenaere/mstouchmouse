@@ -90,8 +90,8 @@ public class Main extends JPanel {
 							data.set(Arrays.copyOfRange(buf, 6, 32));
 							repaint();
 						} else if (bit == 0x21) {
-							r.skip(1);
-							System.out.println("finger " + (r.readUnsignedByte() == 0x12 ? "down" : "up"));
+							int b1 = r.readUnsignedByte(), b2 = r.readUnsignedByte();
+							System.out.println(String.format("finger %s (%02x, %02x)", (b2 & (1 << 1)) != 0 ? "pressed" : "gone", b1, b2));
 						} else {
 							System.out.println("Unknown bit " + bit);
 						}

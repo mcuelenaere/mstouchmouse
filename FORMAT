@@ -1,7 +1,7 @@
 struct info_packet {
     uint8 hid_id; /* 0x21 */
     uint8 unk; /* 0x10 */
-    uint8 finger_down; /* 0x12 if yes, 0x10 if not */
+    uint8 finger_down; /* (1 << 1) if yes, (0 << 1) if not */
 };
 
 struct finger_packet {
