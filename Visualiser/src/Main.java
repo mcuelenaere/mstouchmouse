@@ -1,9 +1,10 @@
 /**
  * Simple visualizer for MS Touch Mouse raw touch data
  * 
- * @author Maurus Cuelenaer
+ * @author Maurus Cuelenaere
  */
 
+import java.awt.BorderLayout;
 import java.awt.Color;
 import java.awt.Dimension;
 import java.awt.Graphics;
@@ -13,12 +14,15 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.FilenameFilter;
 import java.io.IOException;
+import java.util.Arrays;
 import java.util.concurrent.atomic.AtomicReference;
 
+import javax.swing.Box;
+import javax.swing.BoxLayout;
 import javax.swing.JComponent;
 import javax.swing.JFrame;
-import javax.swing.JLabel;
 import javax.swing.JPanel;
+import javax.swing.JTable;
 import javax.swing.SwingUtilities;
 
 public class Main extends JPanel {
@@ -41,40 +45,49 @@ public class Main extends JPanel {
 
 	public Main()
 	{
-		data = new AtomicReference<int[]>(new int[] {0xff, 0x5f, 0x00}); /* dummy data */
+		setLayout(new BoxLayout(this, BoxLayout.X_AXIS));
 
-		final JLabel l = new JLabel();
+		data = new AtomicReference<int[]>(new int[] {0xff, 0xff, 0xff}); /* dummy data */
+
+		String[][] tableData = new String[32][3];
+		for (int i=0; i < 32; i++) {
+			tableData[i][0] = String.valueOf(i);
+			tableData[i][1] = "0x00";
+			tableData[i][2] = "0x00";
+		}
+
+		tableData[0][0] = "hid_id";
+		tableData[1][0] = "group_id/pressure";
+		tableData[6][0] = "timestamp";
+
+		final JTable table = new JTable(tableData, new String[] {"description", "values", "values2"});
+		Box b = Box.createVerticalBox();
+		b.add(table.getTableHeader());
+		b.add(table);
+
 		add(new Vis());
-		add(l);
-		
+		add(b);
+
 		final File hidraw = discoverHidRaw();
 		System.out.println(hidraw);
 		new Thread(new Runnable() {
 			@Override
 			public void run() {
 				try {
+					int buf[] = new int[32];
 					DataInputStream r = new DataInputStream(new BufferedInputStream(new FileInputStream(hidraw)));
 					while (true) {
 						/* See ../../FORMAT */
 						int bit = r.readUnsignedByte();
 						if (bit == 0x27) {
-							int buf[] = new int[31];
-							for (int i=0; i < buf.length; i++)
+							buf[0] = 0x27;
+							for (int i=1; i < buf.length; i++)
 								buf[i] = r.readUnsignedByte();
 
-							StringBuilder sb = new StringBuilder();
-							sb.append("27 ");
-							for (int i=0; i < buf.length; i++) {
-								sb.append(String.format("%02x", buf[i]));
-								sb.append(" ");
-							}
+							for (int i = 0; i < buf.length; i++)
+								table.getModel().setValueAt(String.format("0x%02x", buf[i]), i, buf[1] < 0x10 ? 2 : 1);
 
-							int tmp[] = new int[16];
-							for (int i=0; i < 16; i++)
-								tmp[i] = buf[6+i];
-							data.set(tmp);
-
-							l.setText(sb.toString());
+							data.set(Arrays.copyOfRange(buf, 6, 32));
 							repaint();
 						} else if (bit == 0x21) {
 							r.skip(1);
@@ -101,21 +114,23 @@ public class Main extends JPanel {
 			final int data[] = Main.this.data.get();
 			final int part = getHeight() / data.length;
 			boolean flag = false;
-			for (int i=0; i < data.length; i++) {
+			for (int i=6; i < data.length; i++) {
+				int k = i - 6;
+
 				if (data[i] != 0xff && !flag) {
 					int tmp = data[i+1] | (data[i] << 8);
 					int loc = tmp * getWidth() / (1 << 16);
 
 					g.setColor(Color.BLACK);
-					g.fillRect(0, part * i, getWidth(), part*2);
+					g.fillRect(0, part * k, getWidth(), part * 2);
 					g.setColor(new Color(0, 0, 0xff));
-					g.drawLine(loc, part*i, loc, part*(i+2));
+					g.drawLine(loc, part * k, loc, part * (k+2));
 
 					i++;
 					flag = true;
 				} else {
 					g.setColor(new Color(0xff - data[i], 0, 0));
-					g.fillRect(0, part * i, getWidth(), part);
+					g.fillRect(0, part * k, getWidth(), part);
 				}
 			}
 		}
@@ -128,7 +143,7 @@ public class Main extends JPanel {
 				JFrame frame = new JFrame("Visualizer");
 				frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 				frame.add(new Main());
-				frame.setSize(640, 480);
+				frame.pack();
 				frame.setVisible(true);
 			}
 		});
