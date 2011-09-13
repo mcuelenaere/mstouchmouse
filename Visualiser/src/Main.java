@@ -85,7 +85,7 @@ public class Main extends JPanel {
 								buf[i] = r.readUnsignedByte();
 
 							for (int i = 0; i < buf.length; i++)
-								table.getModel().setValueAt(String.format("0x%02x", buf[i]), i, buf[1] < 0x10 ? 2 : 1);
+								table.getModel().setValueAt(String.format("0x%02x", buf[i]), i, buf[1] < 0x0f ? 2 : 1);
 
 							data.set(Arrays.copyOfRange(buf, 7, 32));
 							repaint();
