@@ -13,6 +13,7 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.FilenameFilter;
 import java.io.IOException;
+import java.util.concurrent.atomic.AtomicReference;
 
 import javax.swing.JComponent;
 import javax.swing.JFrame;
@@ -21,7 +22,7 @@ import javax.swing.JPanel;
 import javax.swing.SwingUtilities;
 
 public class Main extends JPanel {
-	private volatile int data[];
+	private AtomicReference<int[]> data;
 
 	private static File discoverHidRaw()
 	{
@@ -40,7 +41,7 @@ public class Main extends JPanel {
 
 	public Main()
 	{
-		data = new int[] {0xff, 0x5f, 0x00}; /* dummy data */
+		data = new AtomicReference<int[]>(new int[] {0xff, 0x5f, 0x00}); /* dummy data */
 
 		final JLabel l = new JLabel();
 		add(new Vis());
@@ -71,7 +72,7 @@ public class Main extends JPanel {
 							int tmp[] = new int[16];
 							for (int i=0; i < 16; i++)
 								tmp[i] = buf[6+i];
-							data = tmp;
+							data.set(tmp);
 
 							l.setText(sb.toString());
 							repaint();
@@ -97,6 +98,7 @@ public class Main extends JPanel {
 
 		@Override
 		protected void paintComponent(Graphics g) {
+			final int data[] = Main.this.data.get();
 			final int part = getHeight() / data.length;
 			boolean flag = false;
 			for (int i=0; i < data.length; i++) {
