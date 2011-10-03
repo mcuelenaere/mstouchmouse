@@ -6,6 +6,7 @@
 
 import java.awt.Color;
 import java.awt.Dimension;
+import java.awt.Font;
 import java.awt.Graphics;
 import java.awt.Insets;
 import java.io.BufferedInputStream;
@@ -21,6 +22,7 @@ import javax.swing.Box;
 import javax.swing.BoxLayout;
 import javax.swing.JComponent;
 import javax.swing.JFrame;
+import javax.swing.JLabel;
 import javax.swing.JPanel;
 import javax.swing.JTable;
 import javax.swing.SwingUtilities;
@@ -43,6 +45,7 @@ public class Main extends JPanel {
 
 		tableData[0][0] = "hid_id";
 		tableData[1][0] = "group_id/pressure";
+		tableData[2][0] = tableData[3][0] = tableData[4][0] = tableData[5][0] = "header";
 		tableData[6][0] = "timestamp";
 
 		final JTable table = new JTable(tableData, new String[] {"description", "values", "values2"});
@@ -54,8 +57,14 @@ public class Main extends JPanel {
 		Vis v = new Vis();
 		v.setBorder(BorderFactory.createTitledBorder("Visualizer"));
 
+		final JLabel l = new JLabel();
+		l.setText("<filler><filler><filler><filler>");
+		l.setFont(Font.getFont(Font.MONOSPACED));
+		l.setBorder(BorderFactory.createTitledBorder("Description"));
+
 		add(v);
 		add(b);
+		add(l);
 
 		System.out.println(hidraw);
 		new Thread(new Runnable() {
@@ -75,6 +84,8 @@ public class Main extends JPanel {
 							for (int i = 0; i < buf.length; i++)
 								table.setValueAt(String.format("0x%02x", buf[i]), i, buf[1] < 0x0f ? 2 : 1);
 
+							parseData(l, buf);
+
 							data.set(Arrays.copyOfRange(buf, 7, 32));
 							repaint();
 						} else if (bit == 0x21) {
@@ -89,6 +100,40 @@ public class Main extends JPanel {
 				}
 			}
 		}).start();
+	}
+
+	private String parseMousePart(int val) {
+		int high = val & 0xF0;
+		int low = val & 0x0F;
+		if (high != 0x20 && high != 0x00)
+			return "N/A";
+
+		switch (low) {
+		case 0x01:
+			return "left";
+		case 0x02:
+			return "right";
+		default:
+			return "N/A";
+		}
+	}
+
+	private void parseData(JLabel l, int buf[]) {
+		int endPos = 31;
+		for (int i=31; i >= 7; i--) {
+			if (buf[i] != 0x00) {
+				endPos = i;
+				break;
+			}
+		}
+
+		l.setText(String.format("<html>" +
+								"endPos: %d (0x%02x)<br>" +
+								"mouse part: 0x%02x %s<br>" +
+								"2nd timestamp: 0x%02x<br>",
+								endPos, endPos,
+								buf[endPos-1], parseMousePart(buf[endPos-1]),
+								buf[endPos]));
 	}
 
 	private class Vis extends JComponent {
