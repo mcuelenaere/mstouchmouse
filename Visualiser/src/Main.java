@@ -7,6 +7,7 @@
 import java.awt.Color;
 import java.awt.Dimension;
 import java.awt.Graphics;
+import java.awt.Insets;
 import java.io.BufferedInputStream;
 import java.io.DataInputStream;
 import java.io.File;
@@ -15,6 +16,7 @@ import java.io.IOException;
 import java.util.Arrays;
 import java.util.concurrent.atomic.AtomicReference;
 
+import javax.swing.BorderFactory;
 import javax.swing.Box;
 import javax.swing.BoxLayout;
 import javax.swing.JComponent;
@@ -45,10 +47,14 @@ public class Main extends JPanel {
 
 		final JTable table = new JTable(tableData, new String[] {"description", "values", "values2"});
 		Box b = Box.createVerticalBox();
+		b.setBorder(BorderFactory.createTitledBorder("Raw data"));
 		b.add(table.getTableHeader());
 		b.add(table);
 
-		add(new Vis());
+		Vis v = new Vis();
+		v.setBorder(BorderFactory.createTitledBorder("Visualizer"));
+
+		add(v);
 		add(b);
 
 		System.out.println(hidraw);
@@ -67,7 +73,7 @@ public class Main extends JPanel {
 								buf[i] = r.readUnsignedByte();
 
 							for (int i = 0; i < buf.length; i++)
-								table.getModel().setValueAt(String.format("0x%02x", buf[i]), i, buf[1] < 0x0f ? 2 : 1);
+								table.setValueAt(String.format("0x%02x", buf[i]), i, buf[1] < 0x0f ? 2 : 1);
 
 							data.set(Arrays.copyOfRange(buf, 7, 32));
 							repaint();
@@ -93,16 +99,18 @@ public class Main extends JPanel {
 
 		@Override
 		protected void paintComponent(Graphics g) {
+			Insets insets = getInsets();
+			int width = getWidth() - insets.left - insets.right, height = getHeight() - insets.top - insets.bottom;
+			int x = insets.left, y = insets.top;
 			final int data[] = Main.this.data.get();
-			final int part = getHeight() / data.length;
-			boolean flag = false;
+			final int part = height / data.length;
 			for (int i=0; i < data.length; i++) {
 				g.setColor(new Color(0xff - data[i], 0, 0));
-				g.fillRect(0, part * i, getWidth(), part);
+				g.fillRect(x, y + part * i, width, part);
 
-				int loc = data[i] * getWidth() / (1 << 8);
+				int loc = data[i] * width / (1 << 8);
 				g.setColor(new Color(0, 0, 0xff));
-				g.drawLine(loc, part * i, loc, part * (i+1));
+				g.drawLine(x + loc, y + part * i, x + loc, y + part * (i+1));
 			}
 		}
 	}
