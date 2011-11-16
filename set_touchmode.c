@@ -40,45 +40,66 @@ static int get_report(int fd, char id, char *buf, size_t len) {
     return res;
 }
 
-static int do_stuff(char* file) {
-    int fd, i;
+static int do_voodoo(int fd) {
+    int i;
     char recv_buf[256];
 
     static struct {
         char buf[64];
         size_t len;
     } reports[] = {
-        /*{{18, 0x01}, 2},
-        {{18, 0x05}, 2},*/
-        /*{{23, 0x05}, 2},
+        {{18, 0x01}, 2},
+        {{18, 0x05}, 2},
+        {{23, 0x05}, 2},
         {{23, 0x01}, 2},
-        {{23, 0x11}, 2},*/
-        /*{{40, 0x00, 0x02}, 3},
-        {{40, 0x10, 0x00}, 3},*/
+        {{23, 0x11}, 2},
+        {{40, 0x00, 0x02}, 3},
+        {{40, 0x10, 0x00}, 3},
         {{0x22, 0x14, 0x01, 0x00, 0x06, 0x00, 0x00, 0x03, 0xe8, 0x00, 0x01, 0x02, 0x04, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00}, 27},
-        //{{0x24, 0xfe, 0x0f, 0x00, 0x00, 0x00, 0x00, 0x00, 0x0c, 0x00, 0x00, 0x00, 0x5e, 0x04, 0x73, 0x07, 0xf0, 0xe0, 0x1c, 0x00, 0x00, 0x00, 0x00, 0x00, 0xfe, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff}, 32},
+        {{0x24, 0xfe, 0x0f, 0x00, 0x00, 0x00, 0x00, 0x00, 0x0c, 0x00, 0x00, 0x00, 0x5e, 0x04, 0x73, 0x07, 0xf0, 0xe0, 0x1c, 0x00, 0x00, 0x00, 0x00, 0x00, 0xfe, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff}, 32},
     };
-
-    fd = open(file, O_RDWR | O_NONBLOCK);
-    if (fd < 0) {
-        perror("Unable to open device");
-        return 1;
-    }
 
     for (i=0; i < sizeof(reports)/sizeof(reports[0]); i++) {
         send_report(fd, reports[i].buf, reports[i].len);
         get_report(fd, reports[i].buf[0], recv_buf, reports[i].len);
     }
 
-    close(fd);
+    return 0;
+}
+
+static int do_simple_voodoo(int fd) {
+    char buffer[27];
+
+    get_report(fd, 0x22, buffer, sizeof(buffer));
+    if (buffer[0] != 0x22 || buffer[1] != 0x14)
+        return 1;
+
+    buffer[2] = 1;
+    if (!buffer[3] && buffer[4] != 0x6) {
+        buffer[4] = 0x6;
+        send_report(fd, buffer, sizeof(buffer));
+    }
+
     return 0;
 }
 
 int main(int argc, char* argv[]) {
+    int fd, ret;
+
     if (argc <= 1) {
         printf("%s /dev/hidrawX \n", argv[0]);
         return -1;
     }
 
-    return do_stuff(argv[1]);
+    fd = open(argv[1], O_RDWR | O_NONBLOCK);
+    if (fd < 0) {
+        perror("Unable to open device");
+        return -2;
+    }
+
+    //ret = do_voodoo(fd);
+    ret = do_simple_voodoo(fd);
+    close(fd);
+
+    return ret;
 }
