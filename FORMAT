@@ -1,20 +1,107 @@
 struct info_packet {
     uint8 hid_id; /* 0x21 */
-    uint8 unk; /* 0x10 */
+    uint8 unk;
     uint8 finger_down; /* (1 << 1) if yes, (0 << 1) if not */
 };
 
 struct finger_packet {
     uint8 hid_id; /* 0x27 */
-    uint4 group_id; /* 0x0 or 0x1 */
-    uint4 pressure; /* ranges from 0x0 to ~ 0xA */
-    uint32 unk_const; /* 0x14 0x01 0x00 0x51 */
-    uint8 timestamp;
-    uint8 touchpad_data[16];
+    uint8 data_length;
+    uint16 unk1;
+    uint8 unk2;
+    uint8 footer; /* 0x51 */
+    uint8 timestamp; /* milliseconds */
+    uint4 data[50];
 };
 
-struct touchpad_data {
-    ...
-    uint8 unk; /* 0x01 | 0x21 if on lefthalf, 0x02 | 0x22 if on righthalf */
-    uint8 timestamp;
-};
+/* pseudo code */
+static uint8 parsed_data[15][13];
+static uint8 x, y;
+static bool advance_flag;
+static uint8 last_time;
+
+/*
+ * The mouse sensor only yields data
+ * for a specific part of its surface.
+ * Because of this, we can't just increase
+ * x and y uniformly; so there's a need for
+ * a simple algorithm.
+ *
+ *    0 1 2 3 4 5 6 7 8 9 A B C D E F
+ *  0       * * * * * * * * * *
+ *  1     * * * * * * * * * * * *
+ *  2   * * * * * * * * * * * * * *
+ *  3   * * * * * * * * * * * * * *
+ *  4 * * * * * * * * * * * * * * * *
+ *  5 * * * * * * * * * * * * * * * *
+ *  6 * * * * * * * * * * * * * * * *
+ *  7 * * * * * * * * * * * * * * * *
+ *  8 * * * * * * * * * * * * * * * *
+ *  9 * * * * * * * * * * * * * * * *
+ *  A * * * * * * * * * * * * * * * *
+ *  B * * * * * * * * * * * * * * * *
+ *  C * * * * * * * * * * * * * * * *
+ *  D * * * * * * * * * * * * * * * *
+ */
+static void advance() {
+    x++;
+
+    int max, nextMin;
+    switch (y) {
+        case 0:
+            max = 11;
+            nextMin = 2;
+        break;
+        case 1:
+            max = 12;
+            nextMin = 1;
+        break;
+        case 2:
+            max = 13;
+            nextMin = 1;
+        break;
+        case 3:
+            max = 13;
+            nextMin = 0;
+        break;
+        default:
+            max = 14;
+            nextMin = 0;
+        break;
+    }
+
+    if (x > max) {
+        y++;
+        x = nextMin;
+    }
+}
+
+static void parse_nibble(uint4 n) {
+    if (advance_flag) {
+        advance_flag = false;
+        for (int i = -3; i < n; i++)
+            advance();
+    } else {
+        if (n == 0xF) {
+            /* The next nibble will indicate how many
+             * positions to advance, so set a flag */
+            advance_flag = true;
+        } else {
+            /* This formula may need some tweaking */
+            parsed_data[x][y] = (0xFF * n) / 0xF;
+            advance();
+        }
+    }
+}
+
+static void parse_data(struct finger_packet *packet) {
+    if (packet->timestamp != last_time) {
+        x = 3;
+        y = 0;
+        memset(parse_data, 0, sizeof(parsed_data));
+    }
+
+    for (int i = 0; i < packet->data_length; i++) {
+        parse_nibble(packet->data[i]);
+    }
+}
