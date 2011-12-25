@@ -17,6 +17,10 @@
 #include <fcntl.h>
 #include <unistd.h>
 
+#ifndef HIDIOCSFEATURE
+#warning Please use more recent kernel headers (>=2.6.38)
+#endif
+
 static int send_report(int fd, char *buf, size_t len) {
     int res = ioctl(fd, HIDIOCSFEATURE(len), buf);
     if (res < 0)
